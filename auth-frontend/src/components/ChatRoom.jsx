@@ -2,44 +2,36 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import SlideControllers from './SlideControllers';
 import UserCard from './UserCard';
-const jwt_decode = await import('jwt-decode').then((mod) => mod.default || mod);
-
-
 
 const ChatRoom = () => {
-  const [currentIndex, setCurrentIndex] = useState(1);
+  const [currentIndex, setCurrentIndex] = useState(0); // Start at the first user
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [users, setUsers] = useState([]);
   const carouselRef = useRef(null);
 
   // Decode the JWT token to get the logged-in user's ID
-  const getLoggedInUserId = () => {
+  const getLoggedInUserEmail = () => {
     const token = localStorage.getItem('token');
     if (token) {
-      try {
-        const decodedToken = jwt_decode(token);
-        return decodedToken.userId;
-      } catch (error) {
-        console.error('Error decoding token:', error);
-        return null;
-      }
+      const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decode the token
+      return decodedToken.email; // Ensure that your backend includes email in the token payload
     }
     return null;
   };
-
-  const loggedInUserId = React.useMemo(getLoggedInUserId, [localStorage.getItem('token')]);
+  
+  const loggedInUserEmail = React.useMemo(getLoggedInUserEmail, [localStorage.getItem('token')]);
 
   // Fetch users from backend
   useEffect(() => {
     let didCancel = false; // Flag to prevent setting state if component unmounts
-  
+    
     const fetchUsers = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/auth/users');
         const allUsers = response.data;
         
         // Filter out the logged-in user
-        const filteredUsers = allUsers.filter((user) => user._id !== loggedInUserId);
+        const filteredUsers = allUsers.filter((user) => user.email !== loggedInUserEmail);
         
         if (!didCancel) {
           setUsers(filteredUsers);
@@ -50,33 +42,29 @@ const ChatRoom = () => {
         }
       }
     };
-  
+    
     fetchUsers();
-  
+    
     return () => {
       didCancel = true; // Cleanup to prevent memory leaks
     };
-  }, [loggedInUserId]);
-  
-
-  // Create a duplicate array to enable infinite loop effect
-  const extendedUsers = [users[users.length - 1], ...users, users[0]];
+  }, [loggedInUserEmail]);
 
   // Handle transition end to implement infinite looping
   const handleTransitionEnd = () => {
     setIsTransitioning(false);
-    if (currentIndex === extendedUsers.length - 1) {
-      setCurrentIndex(1);
+    if (currentIndex === users.length) {
+      setCurrentIndex(0);
       carouselRef.current.style.transition = 'none';
-    } else if (currentIndex === 0) {
-      setCurrentIndex(users.length);
+    } else if (currentIndex === -1) {
+      setCurrentIndex(users.length - 1);
       carouselRef.current.style.transition = 'none';
     }
   };
 
   // Reset transition to enable smooth animation
   useEffect(() => {
-    if (currentIndex === 1 || currentIndex === users.length) {
+    if (currentIndex === 0 || currentIndex === users.length - 1) {
       setTimeout(() => {
         carouselRef.current.style.transition = 'transform 0.35s ease-in-out';
       }, 50);
@@ -97,7 +85,7 @@ const ChatRoom = () => {
           }}
           onTransitionEnd={handleTransitionEnd}
         >
-          {extendedUsers.map((user, index) => (
+          {users.map((user, index) => (
             <div key={index} className="flex-shrink-0 w-full flex justify-center items-center">
               <UserCard user={user} />
             </div>

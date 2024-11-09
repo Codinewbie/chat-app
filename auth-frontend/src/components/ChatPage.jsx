@@ -1,63 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:5000');
+import axios from 'axios';
 
 const ChatPage = () => {
-  const { email } = useParams(); // Get the email of the user to chat with
-  const [message, setMessage] = useState('');
+  const { email } = useParams();
   const [messages, setMessages] = useState([]);
-  const room = email; // Using the recipient's email as the room name
+  const [newMessage, setNewMessage] = useState('');
 
-  // Join the room on component mount
+  // Fetch the logged-in user's email from the token stored in localStorage
+  const getLoggedInUserEmail = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decode the token
+      return decodedToken.email; // Ensure that your backend includes email in the token payload
+    }
+    return null;
+  };
+
+  const loggedInUserEmail = getLoggedInUserEmail();
+
+  // Fetch messages on component mount
   useEffect(() => {
-    socket.emit('join_room', room);
-
-    socket.on('receive_message', (data) => {
-      setMessages((prevMessages) => [...prevMessages, data]);
-    });
-
-    return () => {
-      socket.disconnect();
+    const fetchMessages = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/api/chat/${loggedInUserEmail}/${email}`
+        );
+        setMessages(response.data);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
     };
-  }, [room]);
+    fetchMessages();
+  }, [email, loggedInUserEmail]);
 
-  const sendMessage = () => {
-    if (message.trim()) {
-      const msgData = {
-        room,
-        sender: 'Me', // You can replace this with the logged-in user's info
-        message,
-      };
-      socket.emit('send_message', msgData);
-      setMessages((prevMessages) => [...prevMessages, msgData]);
-      setMessage('');
+  // Handle sending a new message
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+    try {
+      const response = await axios.post('http://localhost:5000/api/chat/send', {
+        senderEmail: loggedInUserEmail,
+        receiverEmail: email,
+        content: newMessage,
+      });
+      setMessages([...messages, response.data]);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+    <div className="min-h-screen p-4 bg-gray-100">
       <h2 className="text-2xl font-bold mb-4">Chat with {email}</h2>
-      <div className="w-full max-w-lg bg-white p-4 shadow rounded overflow-y-auto h-80">
+      <div className="bg-white shadow-lg p-4 rounded-lg overflow-y-auto h-80 mb-4">
         {messages.map((msg, index) => (
-          <div key={index} className="mb-2">
-            <strong>{msg.sender}:</strong> {msg.message}
+          <div
+            key={index}
+            className={`mb-2 text-left flex ${
+              msg.senderEmail === loggedInUserEmail ? 'flex-row-reverse' : 'flex-row'
+            }`}
+          >
+            <span className={`inline-block max-w-sm p-2 rounded-lg ${
+                msg.senderEmail === loggedInUserEmail
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200'
+              }`}
+              style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}
+            >
+              {msg.content}
+            </span>
           </div>
         ))}
       </div>
-      <div className="flex mt-4 w-full max-w-lg">
+      <div className="flex">
         <input
           type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="w-full p-2 border rounded-l"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          className="w-full p-2 border rounded-l-lg"
+          placeholder="Type your message..."
         />
-        <button
-          onClick={sendMessage}
-          className="bg-blue-500 text-white p-2 rounded-r"
-        >
+        <button onClick={handleSendMessage} className="bg-blue-500 text-white px-4 rounded-r-lg">
           Send
         </button>
       </div>

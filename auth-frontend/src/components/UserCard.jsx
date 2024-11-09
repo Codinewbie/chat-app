@@ -1,13 +1,13 @@
-import React from 'react';
+import React from "react";
 import { useNavigate } from 'react-router-dom';
 
 const UserCard = ({ user }) => {
   const navigate = useNavigate();
 
   if (!user) {
-    return null; // Don't render anything if user is undefined
+    return null;
   }
-
+        
   const getInitials = (name) => {
     if (!name) return '';
     const nameArray = name.split(' ');
@@ -25,20 +25,18 @@ const UserCard = ({ user }) => {
           {getInitials(user.name)}
         </div>
         <h5 className="text-xl font-semibold text-gray-900">{user.name}</h5>
-        <span className="text-sm text-gray-600">
-          {user.email || 'No description available'}
-        </span>
+        <span className="text-sm text-gray-600">{user.email}</span>
       </div>
       <div className="flex justify-center mt-6 space-x-4">
-        <button
+        <button 
           onClick={handleMessageClick}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-300"
+          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-200 focus:ring-4 focus:outline-none"
         >
           Message
         </button>
       </div>
     </div>
   );
-};
+}
 
 export default UserCard;

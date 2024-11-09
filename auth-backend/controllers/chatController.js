@@ -3,12 +3,12 @@ const User = require('../models/user');
 
 // Get chat messages between two users
 exports.getMessages = async (req, res) => {
-  const { userId, otherUserId } = req.params;
+  const { senderEmail, receiverEmail } = req.params;
   try {
     const messages = await Message.find({
       $or: [
-        { sender: userId, receiver: otherUserId },
-        { sender: otherUserId, receiver: userId }
+        { senderEmail: senderEmail, receiverEmail: receiverEmail },
+        { senderEmail: receiverEmail, receiverEmail: senderEmail }
       ]
     }).sort({ createdAt: 1 });
 
@@ -20,9 +20,9 @@ exports.getMessages = async (req, res) => {
 
 // Send a new message
 exports.sendMessage = async (req, res) => {
-  const { senderId, receiverId, content } = req.body;
+  const { senderEmail, receiverEmail, content } = req.body;
   try {
-    const newMessage = new Message({ sender: senderId, receiver: receiverId, content });
+    const newMessage = new Message({ senderEmail: senderEmail, receiverEmail: receiverEmail, content });
     await newMessage.save();
     res.status(201).json(newMessage);
   } catch (err) {
