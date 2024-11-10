@@ -8,8 +8,8 @@ exports.getMessages = async (req, res) => {
     const messages = await Message.find({
       $or: [
         { senderEmail: senderEmail, receiverEmail: receiverEmail },
-        { senderEmail: receiverEmail, receiverEmail: senderEmail }
-      ]
+        { senderEmail: receiverEmail, receiverEmail: senderEmail },
+      ],
     }).sort({ createdAt: 1 });
 
     res.json(messages);
@@ -18,11 +18,11 @@ exports.getMessages = async (req, res) => {
   }
 };
 
-// Send a new message
+// Send a new message (Not used in real-time but kept for fallback)
 exports.sendMessage = async (req, res) => {
   const { senderEmail, receiverEmail, content } = req.body;
   try {
-    const newMessage = new Message({ senderEmail: senderEmail, receiverEmail: receiverEmail, content });
+    const newMessage = new Message({ senderEmail, receiverEmail, content });
     await newMessage.save();
     res.status(201).json(newMessage);
   } catch (err) {
