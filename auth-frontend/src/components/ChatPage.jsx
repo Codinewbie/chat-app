@@ -209,6 +209,11 @@ const ChatPage = () => {
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSendMessage();
+                }
+              }}
               className="w-full p-2 border rounded-l-lg"
               placeholder="Type your message..."
             />

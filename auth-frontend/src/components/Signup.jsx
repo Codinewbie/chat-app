@@ -37,6 +37,11 @@ const Signup = () => {
   };
 
   return (
+    <div className="w-full bg-gradient-to-t from-blue-300 to-blue-700">
+    
+    <div className="min-h-screen flex flex-col items-center justify-center w-full">
+      <h1 className="text-4xl text-gray-300 font-bold mb-10">Welcome to the Real-time Chat App!</h1>
+
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg">
       <h2 className="text-2xl font-bold mb-4">Signup</h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -65,6 +70,11 @@ const Signup = () => {
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSubmit();
+            }
+          }}
           className="w-full p-2 mb-4 border border-gray-300 rounded"
           required
         />
@@ -77,6 +87,8 @@ const Signup = () => {
           Sign In
         </button>
       </div>
+    </div>
+    </div>
     </div>
   );
 };

@@ -38,6 +38,11 @@ const Signin = () => {
   };
 
   return (
+    <div className="w-full bg-gradient-to-t from-blue-300 to-blue-700">
+    
+    <div className="min-h-screen flex flex-col items-center justify-center w-full">
+      <h1 className="text-4xl text-gray-300 w-full max-w-2xl text-center font-bold mb-10">Welcome Back! Your Friends are waiting, Signin Fast!</h1>
+
     <div className="bg-white p-6 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4">Signin</h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -55,10 +60,16 @@ const Signin = () => {
           name="password"
           placeholder="Password"
           onChange={handleChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSubmit();
+            }
+          }}
           className="w-full p-2 mb-4 border border-gray-300 rounded"
           required
         />
-        <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
+        <button type="submit" 
+        className="w-full bg-blue-500 text-white p-2 rounded">
           Sign In
         </button>
       </form>
@@ -67,6 +78,8 @@ const Signin = () => {
           Sign Up
         </button>
       </div>
+    </div>
+    </div>
     </div>
   );
 };

@@ -39,14 +39,14 @@ const Header = () => {
       <div>
         <Link to="/chatroom" className="text-xl font-bold">Chat App</Link>
       </div>
-      <div className="flex items-center">
-        <div className="bg-blue-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-md mr-4">
+      <div className="flex items-center space-x-6">
+        <div className="bg-blue-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-md">
           {getInitials()}
         </div>
-        <span className="mr-4">{name}</span>
+        <span className="">{name}</span>
         <button 
           onClick={handleLogout}
-          className=" hover:bg-blue-500 text-white py-2 px-4 rounded"
+          className=" hover:bg-blue-500 text-white py-2 mr-2 px-3 rounded"
         >
           Logout
         </button>
