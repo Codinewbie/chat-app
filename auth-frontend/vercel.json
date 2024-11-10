@@ -1,18 +1,6 @@
 {
     "version": 2,
-    "builds": [
-      {
-        "src": "auth-backend/server.js",
-        "use": "@vercel/node"
-      },
-      {
-        "src": "auth-frontend/package.json",
-        "use": "@vercel/static-build",
-        "config": {
-          "distDir": "auth-frontend/dist"
-        }
-      }
-    ],
+    
     "routes": [
       { "src": "/api/(.*)", "dest": "auth-backend/server.js" },
       { "src": "/(.*)", "dest": "/auth-frontend/index.html" }
