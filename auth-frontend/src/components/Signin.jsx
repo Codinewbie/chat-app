@@ -58,7 +58,7 @@ const Signin = () => {
           className="w-full p-2 mb-4 border border-gray-300 rounded"
           required
         />
-        <button type="submit" className="w-full bg-green-500 text-white p-2 rounded">
+        <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
           Sign In
         </button>
       </form>

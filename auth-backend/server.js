@@ -39,8 +39,9 @@ const io = new Server(server, {
   },
 });
 
-// Maintain a socket map to handle user sessions
+
 const userSocketMap = {};
+const activeUsersMap = {}; // Track active users (those who have entered the chat room)
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -51,14 +52,22 @@ io.on('connection', (socket) => {
     console.log(`User ${userEmail} connected with socket ID ${socket.id}`);
   });
 
+  // Listen when a user enters the chat page or room, mark them as active
+  socket.on('enterChat', (userEmail) => {
+    activeUsersMap[userEmail] = true; // Mark the user as active
+    console.log(`User ${userEmail} entered the chat`);
+    
+    // Emit the updated active users list
+    io.emit('activeUsers', Object.keys(activeUsersMap));
+  });
+
   // Join room for one-to-one chat
-  socket.on('joinRoom', ({ senderEmail, receiverEmail }) => {
+ socket.on('joinRoom', ({ senderEmail, receiverEmail }) => {
     const roomId = [senderEmail, receiverEmail].sort().join('-');
     socket.join(roomId);
     console.log(`User with email ${senderEmail} joined room ${roomId}`);
   });
 
-  // Handle sending messages
   socket.on('sendMessage', (messageData) => {
     const { senderEmail, receiverEmail } = messageData;
     const roomId = [senderEmail, receiverEmail].sort().join('-');
@@ -68,9 +77,10 @@ io.on('connection', (socket) => {
 
     console.log(`Message sent from ${senderEmail} to ${receiverEmail} in room ${roomId}`);
   });
-
+  // Handle disconnection
   socket.on('disconnect', () => {
     console.log('A user disconnected:', socket.id);
+
     // Remove the user from userSocketMap
     for (const email in userSocketMap) {
       if (userSocketMap[email] === socket.id) {
@@ -78,6 +88,17 @@ io.on('connection', (socket) => {
         break;
       }
     }
+// Remove from active users if the user disconnect
+    for (const email in activeUsersMap) {
+      if (userSocketMap[email] === socket.id) {
+        delete activeUsersMap[email];
+        break;
+      }
+    }
+    // Emit the updated active users list, removing the disconnected user
+    io.emit('activeUsers', Object.keys(activeUsersMap));
+
+    
   });
 });
 

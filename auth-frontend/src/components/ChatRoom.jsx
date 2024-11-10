@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import SlideControllers from './SlideControllers';
 import UserCard from './UserCard';
+import Header from './Header';
 
 const ChatRoom = () => {
-  const [currentIndex, setCurrentIndex] = useState(0); // Start at the first user
+  const [currentIndex, setCurrentIndex] = useState(1); // Start at the cloned first slide
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [users, setUsers] = useState([]);
+
   const carouselRef = useRef(null);
 
   // Decode the JWT token to get the logged-in user's ID
@@ -18,101 +20,112 @@ const ChatRoom = () => {
     }
     return null;
   };
-  
+
   const loggedInUserEmail = React.useMemo(getLoggedInUserEmail, [localStorage.getItem('token')]);
 
   // Fetch users from backend
- // Fetch users from backend
-useEffect(() => {
-  let didCancel = false; // Flag to prevent setting state if component unmounts
+  useEffect(() => {
+    let didCancel = false;
 
-  const fetchUsers = async () => {
-    try {
-      // Get the token from localStorage
-      const token = localStorage.getItem('token');
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No token found, please sign in again.');
+          return;
+        }
+        const response = await axios.get('http://localhost:5000/api/auth/users', {
+          headers: {
+            Authorization: token,
+          },
+        });
 
-      // If token is missing, return early
-      if (!token) {
-        console.error('No token found, please sign in again.');
-        return;
+        const allUsers = response.data;
+        const filteredUsers = allUsers.filter((user) => user.email !== loggedInUserEmail);
+
+        if (!didCancel) {
+          setUsers(filteredUsers);
+        }
+      } catch (error) {
+        if (!didCancel) {
+          console.error('Error fetching users:', error);
+        }
       }
+    };
 
-      // Send a GET request with the token in the Authorization header
-      const response = await axios.get('http://localhost:5000/api/auth/users', {
-        headers: {
-          Authorization: token, // Include the token in the headers
-        },
-      });
+    fetchUsers();
 
-      const allUsers = response.data;
+    return () => {
+      didCancel = true;
+    };
+  }, [loggedInUserEmail]);
 
-      // Filter out the logged-in user
-      const filteredUsers = allUsers.filter((user) => user.email !== loggedInUserEmail);
-
-      if (!didCancel) {
-        setUsers(filteredUsers);
-      }
-    } catch (error) {
-      if (!didCancel) {
-        console.error('Error fetching users:', error);
-      }
-    }
-  };
-
-  fetchUsers();
-
-  return () => {
-    didCancel = true; // Cleanup to prevent memory leaks
-  };
-}, [loggedInUserEmail]);
-
-  // Handle transition end to implement infinite looping
+  // Handle transition end
   const handleTransitionEnd = () => {
     setIsTransitioning(false);
-    if (currentIndex === users.length) {
-      setCurrentIndex(0);
+    if (currentIndex === users.length + 1) {
+      setCurrentIndex(1); // Reset to the first real user after the cloned slide
       carouselRef.current.style.transition = 'none';
-    } else if (currentIndex === -1) {
-      setCurrentIndex(users.length - 1);
+    } else if (currentIndex === 0) {
+      setCurrentIndex(users.length); // Go to the last real user after the cloned first slide
       carouselRef.current.style.transition = 'none';
     }
   };
 
   // Reset transition to enable smooth animation
   useEffect(() => {
-    if (currentIndex === 0 || currentIndex === users.length - 1) {
-      setTimeout(() => {
-        carouselRef.current.style.transition = 'transform 0.35s ease-in-out';
-      }, 50);
-    }
-  }, [currentIndex]);
+    if (isTransitioning) return;
+    const timeout = setTimeout(() => {
+      carouselRef.current.style.transition = 'transform 0.35s ease-in-out';
+    }, 50);
+    return () => clearTimeout(timeout);
+  }, [isTransitioning]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center w-full bg-gray-200">
-      <h1 className="text-4xl font-bold mb-6">Welcome to the Chat Room!</h1>
+    <div className="w-full bg-gradient-to-t from-blue-300 to-blue-700">
+      <Header />
+      <div className="min-h-screen flex flex-col items-center justify-center w-full">
+        <h1 className="text-4xl font-bold mb-6">Welcome to the Chat Room!</h1>
 
-      {/* Carousel Wrapper */}
-      <div className="relative w-full max-w-lg overflow-hidden">
-        <div
-          ref={carouselRef}
-          className="flex transition-transform duration-200 ease-in-out"
-          style={{
-            transform: `translateX(-${currentIndex * 100}%)`,
-          }}
-          onTransitionEnd={handleTransitionEnd}
-        >
-          {users.map((user, index) => (
-            <div key={index} className="flex-shrink-0 w-full flex justify-center items-center">
-              <UserCard user={user} />
-            </div>
-          ))}
+        {/* Carousel Wrapper */}
+        <div className="relative w-full max-w-lg overflow-hidden">
+          <div
+            ref={carouselRef}
+            className="flex transition-transform duration-200 ease-in-out"
+            style={{
+              transform: `translateX(-${currentIndex * 100}%)`,
+            }}
+            onTransitionEnd={handleTransitionEnd}
+          >
+            {/* Cloned last slide */}
+            {users.length > 0 && (
+              <div className="flex-shrink-0 w-full flex justify-center items-center">
+                <UserCard user={users[users.length - 1]} loggedInUserEmail={loggedInUserEmail} />
+              </div>
+            )}
+            {/* Real slides */}
+            {users.map((user, index) => (
+              <div key={index} className="flex-shrink-0 w-full flex justify-center items-center">
+                <UserCard user={user} loggedInUserEmail={loggedInUserEmail} />
+              </div>
+            ))}
+            {/* Cloned first slide */}
+            {users.length > 0 && (
+              <div className="flex-shrink-0 w-full flex justify-center items-center">
+                <UserCard user={users[0]} loggedInUserEmail={loggedInUserEmail} />
+              </div>
+            )}
+          </div>
         </div>
+
+        <SlideControllers
+          isTransitioning={isTransitioning}
+          setIsTransitioning={setIsTransitioning}
+          setCurrentIndex={setCurrentIndex}
+          usersLength={users.length}
+          currentIndex={currentIndex}
+        />
       </div>
-      <SlideControllers
-        isTransitioning={isTransitioning}
-        setIsTransitioning={setIsTransitioning}
-        setCurrentIndex={setCurrentIndex}
-      />
     </div>
   );
 };
