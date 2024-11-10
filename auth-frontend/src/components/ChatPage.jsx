@@ -22,9 +22,15 @@ const ChatPage = () => {
   // Fetch messages on component mount
   useEffect(() => {
     const fetchMessages = async () => {
+      const token = localStorage.getItem('token');
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/chat/${loggedInUserEmail}/${email}`
+          `http://localhost:5000/api/chat/${loggedInUserEmail}/${email}`,
+          {
+            headers:{
+              Authorization: token, // Include token in the headers
+            },
+          }
         );
         setMessages(response.data);
       } catch (error) {
@@ -37,12 +43,22 @@ const ChatPage = () => {
   // Handle sending a new message
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
+    const token = localStorage.getItem('token');
     try {
-      const response = await axios.post('http://localhost:5000/api/chat/send', {
-        senderEmail: loggedInUserEmail,
-        receiverEmail: email,
-        content: newMessage,
-      });
+      const response = await axios.post(
+        'http://localhost:5000/api/chat/send',
+         {
+            senderEmail: loggedInUserEmail,
+            receiverEmail: email,
+            content: newMessage,
+         },
+         {
+            headers:{
+              Authorization: token,
+
+            }
+         }
+        );
       setMessages([...messages, response.data]);
       setNewMessage('');
     } catch (error) {

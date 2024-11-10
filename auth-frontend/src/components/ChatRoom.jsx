@@ -22,33 +22,49 @@ const ChatRoom = () => {
   const loggedInUserEmail = React.useMemo(getLoggedInUserEmail, [localStorage.getItem('token')]);
 
   // Fetch users from backend
-  useEffect(() => {
-    let didCancel = false; // Flag to prevent setting state if component unmounts
-    
-    const fetchUsers = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/auth/users');
-        const allUsers = response.data;
-        
-        // Filter out the logged-in user
-        const filteredUsers = allUsers.filter((user) => user.email !== loggedInUserEmail);
-        
-        if (!didCancel) {
-          setUsers(filteredUsers);
-        }
-      } catch (error) {
-        if (!didCancel) {
-          console.error('Error fetching users:', error);
-        }
+ // Fetch users from backend
+useEffect(() => {
+  let didCancel = false; // Flag to prevent setting state if component unmounts
+
+  const fetchUsers = async () => {
+    try {
+      // Get the token from localStorage
+      const token = localStorage.getItem('token');
+
+      // If token is missing, return early
+      if (!token) {
+        console.error('No token found, please sign in again.');
+        return;
       }
-    };
-    
-    fetchUsers();
-    
-    return () => {
-      didCancel = true; // Cleanup to prevent memory leaks
-    };
-  }, [loggedInUserEmail]);
+
+      // Send a GET request with the token in the Authorization header
+      const response = await axios.get('http://localhost:5000/api/auth/users', {
+        headers: {
+          Authorization: token, // Include the token in the headers
+        },
+      });
+
+      const allUsers = response.data;
+
+      // Filter out the logged-in user
+      const filteredUsers = allUsers.filter((user) => user.email !== loggedInUserEmail);
+
+      if (!didCancel) {
+        setUsers(filteredUsers);
+      }
+    } catch (error) {
+      if (!didCancel) {
+        console.error('Error fetching users:', error);
+      }
+    }
+  };
+
+  fetchUsers();
+
+  return () => {
+    didCancel = true; // Cleanup to prevent memory leaks
+  };
+}, [loggedInUserEmail]);
 
   // Handle transition end to implement infinite looping
   const handleTransitionEnd = () => {

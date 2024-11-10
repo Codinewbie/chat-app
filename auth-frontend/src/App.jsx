@@ -4,6 +4,7 @@ import Signup from './components/Signup';
 import Signin from './components/Signin';
 import ChatRoom from './components/Chatroom';
 import ChatPage from './components/ChatPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -12,8 +13,16 @@ function App() {
         <Routes>
           <Route path="/register" element={<Signup />} />
           <Route path="/login" element={<Signin />} />
-          <Route path="/chatroom" element={<ChatRoom />} />
-          <Route path="/chat/:email" element={<ChatPage />} />
+          <Route path="/chatroom" element={
+            <ProtectedRoute>
+              <ChatRoom />
+            </ProtectedRoute>
+          } />
+          <Route path="/chat/:email" element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          } />
           <Route path="/" element={<Signin />} />
           
         </Routes>
