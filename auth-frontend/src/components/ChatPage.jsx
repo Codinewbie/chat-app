@@ -1,25 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 const ChatPage = () => {
   const { email } = useParams();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [socket, setSocket] = useState(null);
 
-  // Fetch the logged-in user's email from the token stored in localStorage
+  // Function to get logged-in user's email
   const getLoggedInUserEmail = () => {
     const token = localStorage.getItem('token');
     if (token) {
-      const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decode the token
-      return decodedToken.email; // Ensure that your backend includes email in the token payload
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      return decodedToken.email;
     }
     return null;
   };
 
   const loggedInUserEmail = getLoggedInUserEmail();
 
-  // Fetch messages on component mount
+  // Fetch chat history from the server
   useEffect(() => {
     const fetchMessages = async () => {
       const token = localStorage.getItem('token');
@@ -27,8 +29,8 @@ const ChatPage = () => {
         const response = await axios.get(
           `http://localhost:5000/api/chat/${loggedInUserEmail}/${email}`,
           {
-            headers:{
-              Authorization: token, // Include token in the headers
+            headers: {
+              Authorization: token,
             },
           }
         );
@@ -37,30 +39,66 @@ const ChatPage = () => {
         console.error('Error fetching messages:', error);
       }
     };
-    fetchMessages();
+    if (loggedInUserEmail && email) fetchMessages();
   }, [email, loggedInUserEmail]);
 
-  // Handle sending a new message
+  // Socket connection and event listeners
+  useEffect(() => {
+    const newSocket = io('http://localhost:5000', {
+      withCredentials: true,
+    });
+
+    setSocket(newSocket);
+
+    // Join the chat room
+    if (loggedInUserEmail && email) {
+      newSocket.emit('joinRoom', { senderEmail: loggedInUserEmail, receiverEmail: email });
+    }
+
+    // Listen for incoming messages
+    const handleReceiveMessage = (message) => {
+      // Avoid duplicate messages
+      setMessages((prevMessages) => {
+        if (prevMessages.find((msg) => msg._id === message._id)) {
+          return prevMessages;
+        }
+        return [...prevMessages, message];
+      });
+    };
+
+    newSocket.on('receiveMessage', handleReceiveMessage);
+
+    // Cleanup on component unmount
+    return () => {
+      newSocket.off('receiveMessage', handleReceiveMessage);
+      newSocket.disconnect();
+    };
+  }, [loggedInUserEmail, email]);
+
+  // Handle sending a message
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     const token = localStorage.getItem('token');
     try {
       const response = await axios.post(
         'http://localhost:5000/api/chat/send',
-         {
-            senderEmail: loggedInUserEmail,
-            receiverEmail: email,
-            content: newMessage,
-         },
-         {
-            headers:{
-              Authorization: token,
-
-            }
-         }
-        );
-      setMessages([...messages, response.data]);
+        {
+          senderEmail: loggedInUserEmail,
+          receiverEmail: email,
+          content: newMessage,
+        },
+        {
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+      // Add the sent message to the local state
+      setMessages((prevMessages) => [...prevMessages, response.data]);
       setNewMessage('');
+
+      // Emit the message to the socket server
+      socket.emit('sendMessage', response.data);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -77,10 +115,9 @@ const ChatPage = () => {
               msg.senderEmail === loggedInUserEmail ? 'flex-row-reverse' : 'flex-row'
             }`}
           >
-            <span className={`inline-block max-w-sm p-2 rounded-lg ${
-                msg.senderEmail === loggedInUserEmail
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200'
+            <span
+              className={`inline-block max-w-sm p-2 rounded-lg ${
+                msg.senderEmail === loggedInUserEmail ? 'bg-blue-500 text-white' : 'bg-gray-200'
               }`}
               style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}
             >
