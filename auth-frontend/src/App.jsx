@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Signup from './components/Signup';
 import Signin from './components/Signin';
-import ChatRoom from '@/components/ChatRoom';
+import ChatRoom from './components/Chatroom';
 import ChatPage from './components/ChatPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
